@@ -1,47 +1,65 @@
-"use client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
-import ItemDialog from "./ItemDialog";
+'use client';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
+import ItemDialog from './ItemDialog';
 
-// Utility to extract backend error message or show a fallback
-function getErrorMessage(error: any, fallback: string) {
-  if (!error) return fallback;
-  if (typeof error === "string") return error;
-  if (error.message) return error.message;
-  if (error.error) return error.error;
+type Item = {
+  id: number;
+  name: string;
+  sku: string;
+  quantity: number;
+};
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (!error) {
+    return fallback;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  if (typeof error === 'object' && error !== null) {
+    const errorObj = error as Record<string, unknown>;
+    if ('message' in errorObj && typeof errorObj.message === 'string') {
+      return errorObj.message;
+    }
+    if ('error' in errorObj && typeof errorObj.error === 'string') {
+      return errorObj.error;
+    }
+  }
   return fallback;
 }
 
 export default function ItemTable() {
   const queryClient = useQueryClient();
-  const { data = [], isLoading } = useQuery({
-    queryKey: ["items"],
-    queryFn: async () => fetch("/api/item-master").then(r => r.json()),
+  const { data = [] } = useQuery<Item[]>({
+    queryKey: ['items'],
+    queryFn: async () => fetch('/api/item-master').then((r) => r.json()),
   });
 
   const [error, setError] = useState<string | null>(null);
 
-  // Delete mutation with permission error handling
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch("/api/item-master", {
-        method: "DELETE",
+      const res = await fetch('/api/item-master', {
+        method: 'DELETE',
         body: JSON.stringify({ id }),
       });
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "You do not have permission to delete this item.");
+        const errData = await res.json();
+        throw new Error(
+          errData.error || 'You do not have permission to delete this item.'
+        );
       }
       return res;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["items"] });
+      queryClient.invalidateQueries({ queryKey: ['items'] });
       setError(null);
     },
-    onError: (err: any) => {
-      setError(getErrorMessage(err, "Only admin can delete records."));
+    onError: (err: unknown) => {
+      setError(getErrorMessage(err, 'Only admin can delete records.'));
     },
   });
 
@@ -50,35 +68,36 @@ export default function ItemTable() {
 
   return (
     <div>
-      <ItemDialog afterSave={() => queryClient.invalidateQueries({ queryKey: ["items"] })} />
+      <ItemDialog
+        afterSave={() => queryClient.invalidateQueries({ queryKey: ['items'] })}
+      />
       {error && (
-        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 my-4 rounded font-semibold">
+        <div className="my-4 rounded border-red-500 border-l-4 bg-red-100 p-4 font-semibold text-red-700">
           {error}
         </div>
       )}
-      <table className="min-w-full mt-4 border rounded shadow">
+      <table className="mt-4 min-w-full rounded border shadow">
         <thead className="bg-blue-100">
           <tr>
-            <th className="text-left px-4 py-2">Name</th>
-            <th className="text-left px-4 py-2">SKU</th>
-            <th className="text-left px-4 py-2">Quantity</th>
+            <th className="px-4 py-2 text-left">Name</th>
+            <th className="px-4 py-2 text-left">SKU</th>
+            <th className="px-4 py-2 text-left">Quantity</th>
             <th className="px-4 py-2">Actions</th>
           </tr>
         </thead>
         <tbody>
-          {data.map((item: any) => (
-            <tr key={item.id} className="border-b">
+          {data.map((item: Item) => (
+            <tr className="border-b" key={item.id}>
               <td className="px-4 py-2">{item.name}</td>
               <td className="px-4 py-2">{item.sku}</td>
               <td className="px-4 py-2">{item.quantity}</td>
               <td className="px-4 py-2">
-                {/* You can add edit logic here the same way as delete */}
                 <Button
-                  variant="destructive"
                   onClick={() => {
                     setSelectedId(item.id);
                     setShowDelete(true);
                   }}
+                  variant="destructive"
                 >
                   Delete
                 </Button>
@@ -87,15 +106,14 @@ export default function ItemTable() {
           ))}
         </tbody>
       </table>
-      <Dialog open={showDelete} onOpenChange={setShowDelete}>
+      <Dialog onOpenChange={setShowDelete} open={showDelete}>
         <DialogContent>
           <p>Are you sure you want to delete this item?</p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDelete(false)}>
+            <Button onClick={() => setShowDelete(false)} variant="outline">
               Cancel
             </Button>
             <Button
-              variant="destructive"
               onClick={async () => {
                 if (selectedId) {
                   setError(null);
@@ -103,6 +121,7 @@ export default function ItemTable() {
                   setShowDelete(false);
                 }
               }}
+              variant="destructive"
             >
               Delete
             </Button>
