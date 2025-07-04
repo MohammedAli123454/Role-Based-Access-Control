@@ -1,16 +1,12 @@
 'use client';
+
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { City, Country, State } from 'country-state-city';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import {
-  type UseFormReset,
-  type UseFormSetValue,
-  type UseFormTrigger,
-  useForm,
-} from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import Select from 'react-select';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -50,169 +46,6 @@ type EmployeeDialogProps = {
   forceNoPermissionDialog?: boolean;
 };
 
-type UseInitializeFieldsProps = {
-  open: boolean;
-  initialData?: Partial<EmployeeForm> & { id?: number };
-  setValue: UseFormSetValue<EmployeeForm>;
-  setDob: React.Dispatch<React.SetStateAction<Date | undefined>>;
-  setDoj: React.Dispatch<React.SetStateAction<Date | undefined>>;
-  setSelectedCountry: React.Dispatch<React.SetStateAction<SelectOption | null>>;
-  setSelectedState: React.Dispatch<React.SetStateAction<SelectOption | null>>;
-  setSelectedCity: React.Dispatch<React.SetStateAction<SelectOption | null>>;
-  reset: UseFormReset<EmployeeForm>;
-};
-
-function useInitializeFields({
-  open,
-  initialData,
-  setValue,
-  setDob,
-  setDoj,
-  setSelectedCountry,
-  setSelectedState,
-  setSelectedCity,
-  reset,
-}: UseInitializeFieldsProps) {
-  useEffect(() => {
-    if (!(open && initialData)) {
-      return;
-    }
-    setValue('name', initialData.name || '');
-    setValue('email', initialData.email || '');
-    setValue('status', initialData.status || 'Active');
-  }, [open, initialData, setValue]);
-  useEffect(() => {
-    if (!(open && initialData && initialData.date_of_joining)) {
-      return;
-    }
-    setDoj(new Date(initialData.date_of_joining));
-  }, [open, initialData, setDoj]);
-  useEffect(() => {
-    if (!(open && initialData && initialData.dob)) {
-      return;
-    }
-    setDob(new Date(initialData.dob));
-  }, [open, initialData, setDob]);
-  useEffect(() => {
-    if (!(open && initialData && initialData.country)) {
-      return;
-    }
-    setSelectedCountry({
-      value: initialData.country,
-      label: initialData.country,
-    });
-    setValue('country', initialData.country);
-  }, [open, initialData, setValue, setSelectedCountry]);
-  useEffect(() => {
-    if (!(open && initialData && initialData.state)) {
-      return;
-    }
-    setSelectedState({ value: initialData.state, label: initialData.state });
-    setValue('state', initialData.state);
-  }, [open, initialData, setValue, setSelectedState]);
-  useEffect(() => {
-    if (!(open && initialData && initialData.city)) {
-      return;
-    }
-    setSelectedCity({ value: initialData.city, label: initialData.city });
-    setValue('city', initialData.city);
-  }, [open, initialData, setValue, setSelectedCity]);
-  useEffect(() => {
-    if (open) {
-      return;
-    }
-    reset();
-    setDob(undefined);
-    setDoj(undefined);
-    setSelectedCountry(null);
-    setSelectedState(null);
-    setSelectedCity(null);
-  }, [
-    open,
-    reset,
-    setDob,
-    setDoj,
-    setSelectedCountry,
-    setSelectedState,
-    setSelectedCity,
-  ]);
-}
-
-function useSelectOptions(
-  selectedCountry: SelectOption | null,
-  selectedState: SelectOption | null
-) {
-  const countryOptions = Country.getAllCountries().map((country) => ({
-    value: country.name,
-    label: country.name,
-    ...country,
-  }));
-
-  const stateOptions =
-    selectedCountry &&
-    typeof selectedCountry.value === 'string' &&
-    'isoCode' in selectedCountry &&
-    typeof selectedCountry.isoCode === 'string'
-      ? State.getStatesOfCountry(selectedCountry.isoCode).map((state) => ({
-          value: state.name,
-          label: state.name,
-          ...state,
-        }))
-      : [];
-
-  const cityOptions =
-    selectedCountry &&
-    typeof selectedCountry.value === 'string' &&
-    'isoCode' in selectedCountry &&
-    typeof selectedCountry.isoCode === 'string' &&
-    selectedState &&
-    typeof selectedState.value === 'string' &&
-    'isoCode' in selectedState &&
-    typeof selectedState.isoCode === 'string'
-      ? City.getCitiesOfState(
-          selectedCountry.isoCode,
-          selectedState.isoCode
-        ).map((city) => ({
-          value: city.name,
-          label: city.name,
-          ...city,
-        }))
-      : [];
-
-  return { countryOptions, stateOptions, cityOptions };
-}
-
-function useSelectHandlers(
-  setSelectedCountry: React.Dispatch<React.SetStateAction<SelectOption | null>>,
-  setSelectedState: React.Dispatch<React.SetStateAction<SelectOption | null>>,
-  setSelectedCity: React.Dispatch<React.SetStateAction<SelectOption | null>>,
-  setValue: UseFormSetValue<EmployeeForm>,
-  trigger: UseFormTrigger<EmployeeForm>
-) {
-  const handleCountryChange = (opt: SelectOption | null) => {
-    setSelectedCountry(opt);
-    setSelectedState(null);
-    setSelectedCity(null);
-    setValue('country', opt?.value || '');
-    setValue('state', '');
-    setValue('city', '');
-    trigger(['country', 'state', 'city']);
-  };
-  const handleStateChange = (opt: SelectOption | null) => {
-    setSelectedState(opt);
-    setSelectedCity(null);
-    setValue('state', opt?.value || '');
-    setValue('city', '');
-    trigger(['state', 'city']);
-  };
-  const handleCityChange = (opt: SelectOption | null) => {
-    setSelectedCity(opt);
-    setValue('city', opt?.value || '');
-    trigger('city');
-  };
-  return { handleCountryChange, handleStateChange, handleCityChange };
-}
-
 export default function EmployeeDialog({
   afterSave,
   initialData,
@@ -223,6 +56,7 @@ export default function EmployeeDialog({
   const [open, setOpen] = useState(false);
   const [noPermission, setNoPermission] = useState(false);
 
+  // Form hooks
   const {
     register,
     handleSubmit,
@@ -244,6 +78,7 @@ export default function EmployeeDialog({
 
   const queryClient = useQueryClient();
 
+  // Location and date state
   const [selectedCountry, setSelectedCountry] = useState<SelectOption | null>(
     null
   );
@@ -252,32 +87,99 @@ export default function EmployeeDialog({
   const [dob, setDob] = useState<Date | undefined>(undefined);
   const [doj, setDoj] = useState<Date | undefined>(undefined);
 
-  useInitializeFields({
-    open,
-    initialData,
-    setValue,
-    setDob,
-    setDoj,
-    setSelectedCountry,
-    setSelectedState,
-    setSelectedCity,
-    reset,
-  });
+  // Prefill/edit/cleanup logic - all in one useEffect
+  useEffect(() => {
+    if (!open) {
+      reset();
+      setDob(undefined);
+      setDoj(undefined);
+      setSelectedCountry(null);
+      setSelectedState(null);
+      setSelectedCity(null);
+      return;
+    }
+    if (!initialData) {
+      return;
+    }
+    setValue('name', initialData.name || '');
+    setValue('email', initialData.email || '');
+    setValue('status', initialData.status || 'Active');
+    if (initialData.date_of_joining) {
+      setDoj(new Date(initialData.date_of_joining));
+    }
+    if (initialData.dob) {
+      setDob(new Date(initialData.dob));
+    }
+    if (initialData.country) {
+      setSelectedCountry({
+        value: initialData.country,
+        label: initialData.country,
+      });
+      setValue('country', initialData.country);
+    }
+    if (initialData.state) {
+      setSelectedState({ value: initialData.state, label: initialData.state });
+      setValue('state', initialData.state);
+    }
+    if (initialData.city) {
+      setSelectedCity({ value: initialData.city, label: initialData.city });
+      setValue('city', initialData.city);
+    }
+  }, [open, initialData, setValue, reset]);
 
-  const { countryOptions, stateOptions, cityOptions } = useSelectOptions(
-    selectedCountry,
-    selectedState
-  );
+  // Location select options
+  const countryOptions = Country.getAllCountries().map((c) => ({
+    value: c.name,
+    label: c.name,
+    ...c,
+  }));
+  const stateOptions =
+    selectedCountry && typeof selectedCountry.isoCode === 'string'
+      ? State.getStatesOfCountry(selectedCountry.isoCode).map((s) => ({
+          value: s.name,
+          label: s.name,
+          ...s,
+        }))
+      : [];
+  const cityOptions =
+    selectedCountry &&
+    typeof selectedCountry.isoCode === 'string' &&
+    selectedState &&
+    typeof selectedState.isoCode === 'string'
+      ? City.getCitiesOfState(
+          selectedCountry.isoCode,
+          selectedState.isoCode
+        ).map((c) => ({
+          value: c.name,
+          label: c.name,
+          ...c,
+        }))
+      : [];
 
-  const { handleCountryChange, handleStateChange, handleCityChange } =
-    useSelectHandlers(
-      setSelectedCountry,
-      setSelectedState,
-      setSelectedCity,
-      setValue,
-      trigger
-    );
+  // Select handlers
+  const handleCountryChange = (opt: SelectOption | null) => {
+    setSelectedCountry(opt);
+    setSelectedState(null);
+    setSelectedCity(null);
+    setValue('country', opt?.value || '');
+    setValue('state', '');
+    setValue('city', '');
+    trigger(['country', 'state', 'city']);
+  };
+  const handleStateChange = (opt: SelectOption | null) => {
+    setSelectedState(opt);
+    setSelectedCity(null);
+    setValue('state', opt?.value || '');
+    setValue('city', '');
+    trigger(['state', 'city']);
+  };
+  const handleCityChange = (opt: SelectOption | null) => {
+    setSelectedCity(opt);
+    setValue('city', opt?.value || '');
+    trigger('city');
+  };
 
+  // Mutation (create/update)
   const mutation = useMutation({
     mutationFn: async (data: EmployeeForm) => {
       if (isEdit && initialData?.id) {
@@ -299,25 +201,11 @@ export default function EmployeeDialog({
     },
   });
 
+  // Form submit
   function onSubmit(data: EmployeeForm) {
     data.dob = dob ? format(dob, 'yyyy-MM-dd') : undefined;
     data.date_of_joining = doj ? format(doj, 'yyyy-MM-dd') : undefined;
     mutation.mutate(data);
-  }
-
-  let buttonContent: React.ReactNode;
-
-  if (mutation.isPending) {
-    buttonContent = (
-      <span className="flex items-center gap-2">
-        <Loader2 className="h-5 w-5 animate-spin" />
-        {isEdit ? 'Updating...' : 'Saving...'}
-      </span>
-    );
-  } else if (isEdit) {
-    buttonContent = 'Update';
-  } else {
-    buttonContent = 'Save';
   }
 
   return (
@@ -338,17 +226,10 @@ export default function EmployeeDialog({
             {triggerLabel}
           </Button>
         </DialogTrigger>
-        <DialogContent
-          className="w-full max-w-[95vw] rounded-2xl border bg-white p-0 shadow-lg md:max-w-6xl lg:max-w-7xl xl:max-w-[1200px]"
-          style={{ width: '100%', minWidth: 0 }}
-        >
+        <DialogContent className="w-full max-w-[95vw] rounded-2xl border bg-white p-0 shadow-lg md:max-w-6xl lg:max-w-7xl xl:max-w-[1200px]">
           <DialogTitle
             className="bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-400 bg-clip-text px-8 pt-8 pb-4 font-extrabold text-2xl text-transparent tracking-tight"
-            style={{
-              WebkitBackgroundClip: 'text',
-              backgroundClip: 'text',
-              color: 'transparent',
-            }}
+            style={{ WebkitBackgroundClip: 'text', color: 'transparent' }}
           >
             {isEdit ? 'Edit Employee' : 'Add Employee'}
           </DialogTitle>
@@ -541,7 +422,7 @@ export default function EmployeeDialog({
                 )}
               </div>
             </div>
-            {/* Form buttons */}
+            {/* Buttons */}
             <div className="mt-8 flex flex-col justify-end gap-3 md:flex-row">
               <Button
                 onClick={() => setOpen(false)}
@@ -551,13 +432,21 @@ export default function EmployeeDialog({
                 Cancel
               </Button>
               <Button disabled={mutation.isPending} type="submit">
-                {buttonContent}
+                {mutation.isPending ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    {isEdit ? 'Updating...' : 'Saving...'}
+                  </span>
+                ) : isEdit ? (
+                  'Update'
+                ) : (
+                  'Save'
+                )}
               </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
-
       {/* No Permission Dialog */}
       <Dialog onOpenChange={setNoPermission} open={noPermission}>
         <DialogContent>
