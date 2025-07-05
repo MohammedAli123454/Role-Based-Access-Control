@@ -1,11 +1,12 @@
-
 export default function Home() {
   return (
-    
-      <div className="max-w-2xl mx-auto text-center py-16">
-        <h1 className="text-4xl font-bold mb-4">Arcjet Security + Next.js + Drizzle + TanStack Query</h1>
-        <p className="text-lg text-gray-600">Demo: Secure, modular, production-ready CRUD application</p>
-      </div>
-  
+    <div className="mx-auto max-w-2xl py-16 text-center">
+      <h1 className="mb-4 font-bold text-4xl">
+        Arcjet Security + Next.js + Drizzle + TanStack Query
+      </h1>
+      <p className="text-gray-600 text-lg">
+        Demo: Secure, modular, production-ready CRUD application
+      </p>
+    </div>
   );
 }
