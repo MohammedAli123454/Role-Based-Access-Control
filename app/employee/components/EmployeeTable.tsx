@@ -9,19 +9,8 @@ import {
   DialogFooter,
   DialogTitle,
 } from '@/components/ui/dialog';
+import type { Employee } from '../../employee/types/employee.types';
 import EmployeeDialog from './EmployeeDialog';
-
-type Employee = {
-  id: number;
-  name: string;
-  email?: string;
-  date_of_joining?: string;
-  status: string;
-  dob?: string;
-  country: string;
-  state: string;
-  city: string;
-};
 
 export default function EmployeeTable() {
   const queryClient = useQueryClient();
