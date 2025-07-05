@@ -8,6 +8,9 @@
       },
       "style": {
         "noNestedTernary": "off"
+      },
+      "suspicious": {
+        "noConsole": "off"
       }
     }
   }

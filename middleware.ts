@@ -42,36 +42,39 @@ function isPublicRoute(pathname: string) {
 export async function middleware(req: NextRequest, event: NextFetchEvent) {
   const arcjetResult = await arcjetMiddleware(req, event);
   if (!arcjetResult?.ok) {
+    console.log('ARCJET BLOCKED:', arcjetResult);
     return arcjetResult;
   }
 
   if (isPublicRoute(req.nextUrl.pathname)) {
+    console.log('Public route hit:', req.nextUrl.pathname);
     return NextResponse.next();
   }
 
-  // ---- DEBUG: Print full cookie object and values
   const cookie = req.cookies.get('token');
-  // console.log("MIDDLEWARE DEBUG: raw cookie object:", cookie);
+  console.log('MIDDLEWARE: Cookie from request:', cookie);
 
   const token = typeof cookie === 'string' ? cookie : cookie?.value;
-  // console.log("MIDDLEWARE DEBUG: token string for JWT:", token);
+  console.log('MIDDLEWARE: Token for JWT:', token);
 
-  // Await the result here
   const user = await getUserFromRequest({
     cookies: {
       get: () => token,
     },
   });
-  // console.log("MIDDLEWARE DEBUG: Decoded user:", user);
+  console.log('MIDDLEWARE: Decoded user:', user);
 
   if (!user) {
-    // console.log("MIDDLEWARE DEBUG: No user, redirecting to /login");
+    console.log('MIDDLEWARE: No user detected, redirecting to /login');
     return NextResponse.redirect(new URL('/login', req.url));
   }
 
   if (req.nextUrl.pathname.startsWith('/api')) {
     const permissions = getRolePermissions(user.role);
+    console.log('MIDDLEWARE: User permissions:', permissions);
+
     if (req.method === 'DELETE' && !permissions.canDelete) {
+      console.log('MIDDLEWARE: Not authorized for DELETE');
       return NextResponse.json(
         { error: 'Not authorized: insufficient permissions' },
         { status: 403 }
