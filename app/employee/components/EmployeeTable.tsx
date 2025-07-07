@@ -1,39 +1,26 @@
 'use client';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { BarLoader } from 'react-spinners';
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import type { Employee } from '../../employee/types/employee.types';
+import DeleteButton from './DeleteButton';
 import EmployeeDialog from './EmployeeDialog';
 
 export default function EmployeeTable() {
   const queryClient = useQueryClient();
+
+  /* All employees */
   const { data = [], isLoading } = useQuery({
     queryKey: ['employees'],
     queryFn: async () => fetch('/api/employee').then((r) => r.json()),
   });
+
+  /* Current user (to decide who can edit) */
   const { data: user, isLoading: userLoading } = useQuery({
     queryKey: ['me'],
     queryFn: async () => fetch('/api/me').then((r) => r.json()),
   });
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [showDelete, setShowDelete] = useState(false);
-  const [showNoPermission, setShowNoPermission] = useState(false);
-  const deleteMutation = useMutation({
-    mutationFn: async (id: number) =>
-      fetch('/api/employee', {
-        method: 'DELETE',
-        body: JSON.stringify({ id }),
-      }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['employees'] }),
-  });
-  const canDelete = user?.role === 'admin';
+
   const canEdit = user?.role === 'admin' || user?.role === 'superuser';
 
   return (
@@ -43,6 +30,8 @@ export default function EmployeeTable() {
           <BarLoader color="#2563eb" height={6} width="100%" />
         </div>
       )}
+
+      {/* “Add Employee” button – only for admin / superuser */}
       {(user?.role === 'admin' || user?.role === 'superuser') && (
         <EmployeeDialog
           afterSave={() =>
@@ -116,6 +105,7 @@ export default function EmployeeTable() {
             </th>
           </tr>
         </thead>
+
         <tbody className="font-sans text-sm">
           {!(isLoading || userLoading) && Array.isArray(data) && data.length > 0
             ? data.map((emp: Employee, idx) => (
@@ -151,7 +141,11 @@ export default function EmployeeTable() {
                   </td>
                   <td className="border-gray-200 border-b px-2 py-2 text-center">
                     <span
-                      className={`rounded px-2 py-1 ${emp.status === 'Active' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'}`}
+                      className={`rounded px-2 py-1 ${
+                        emp.status === 'Active'
+                          ? 'bg-green-100 text-green-600'
+                          : 'bg-gray-100 text-gray-600'
+                      }`}
                     >
                       {emp.status}
                     </span>
@@ -168,19 +162,9 @@ export default function EmployeeTable() {
                       isEdit
                       triggerLabel="Edit"
                     />
-                    <Button
-                      onClick={() => {
-                        if (canDelete) {
-                          setSelectedId(emp.id);
-                          setShowDelete(true);
-                        } else {
-                          setShowNoPermission(true);
-                        }
-                      }}
-                      variant="destructive"
-                    >
-                      Delete
-                    </Button>
+
+                    {/* <— the new, self-contained delete button */}
+                    <DeleteButton id={emp.id} />
                   </td>
                 </tr>
               ))
@@ -193,47 +177,6 @@ export default function EmployeeTable() {
               )}
         </tbody>
       </table>
-      {/* Delete Confirmation */}
-      <Dialog onOpenChange={setShowDelete} open={showDelete}>
-        <DialogContent>
-          <DialogTitle>Delete Employee</DialogTitle>
-          <p>Are you sure you want to delete this employee?</p>
-          <DialogFooter>
-            <Button onClick={() => setShowDelete(false)} variant="outline">
-              Cancel
-            </Button>
-            <Button
-              disabled={deleteMutation.isPending}
-              onClick={async () => {
-                if (selectedId) {
-                  await deleteMutation.mutateAsync(selectedId);
-                  setShowDelete(false);
-                }
-              }}
-              variant="destructive"
-            >
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      {/* No Permission Dialog for Delete */}
-      <Dialog onOpenChange={setShowNoPermission} open={showNoPermission}>
-        <DialogContent>
-          <DialogTitle>Permission Denied</DialogTitle>
-          <p className="text-red-600">
-            You do not have permission to delete this record.
-          </p>
-          <DialogFooter>
-            <Button
-              onClick={() => setShowNoPermission(false)}
-              variant="outline"
-            >
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
