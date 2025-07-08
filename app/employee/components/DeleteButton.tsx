@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { BarLoader } from 'react-spinners';
+import { BarLoader, BeatLoader } from 'react-spinners';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -100,7 +100,7 @@ export default function DeleteButton({
             >
               {deleteMutation.isPending ? (
                 /* Loader visible **during** the delete call */
-                <BarLoader color="#ffffff" height={4} width={60} />
+                <BeatLoader color="#ffffff" margin={2} size={6} />
               ) : (
                 'Delete'
               )}
